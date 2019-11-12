@@ -50,6 +50,7 @@ public class AverageComputation {
 	public static void main(String[] args) throws Exception {
 		Configuration conf = new Configuration();
 
+		@SuppressWarnings("deprecation")
 		Job job = new Job(conf, "AverageComputation");
 
 		// add

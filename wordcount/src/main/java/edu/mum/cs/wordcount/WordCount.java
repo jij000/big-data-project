@@ -53,6 +53,7 @@ public class WordCount {
 	public static void main(String[] args) throws Exception {
 		Configuration conf = new Configuration();
 
+		@SuppressWarnings("deprecation")
 		Job job = new Job(conf, "wordcount");
 
 		// add

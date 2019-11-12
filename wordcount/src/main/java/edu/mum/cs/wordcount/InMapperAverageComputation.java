@@ -3,11 +3,9 @@ package edu.mum.cs.wordcount;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -19,53 +17,54 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.log4j.Logger;
 
-public class InMapperWordCount {
+public class InMapperAverageComputation {
 	private static Logger logger = Logger.getLogger(WordCount.class);
 
-	public static class MyMap extends Mapper<LongWritable, Text, Text, IntWritable> {
-//		private final static IntWritable one = new IntWritable(1);
-		int inMapperCount = 0;
+	public static class MyMap extends Mapper<LongWritable, Text, Text, LongWritable> {
 		private Text word = new Text();
-		private Map<String, Integer> mapCount;
-
+		private Map<String, Long> mapCount;
+		
 		public void setup(Context context) throws IOException, InterruptedException {
-			mapCount = new HashMap<String, Integer>();
+			mapCount = new HashMap<String, Long>();
 		}
 
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 			String line = value.toString();
-			StringTokenizer tokenizer = new StringTokenizer(line);
-			while (tokenizer.hasMoreTokens()) {
-				String keyStr = tokenizer.nextToken();
-				logger.info("my log: " + word);
-				if (mapCount.get(keyStr) == null) {
-					mapCount.put(keyStr, 1);
-				} else {
-					int temp = mapCount.get(keyStr) + 1;
-					mapCount.put(keyStr, temp);
-				}
+			// get ip and last quantity
+			String[] strArr = line.split(" ");
+			logger.info("@@@@ " + strArr[0] + " ### " + strArr[strArr.length - 1]);
+			// when the last quantity is - then 0
+			Long val = "-".equals(strArr[strArr.length - 1]) ? 0L : Long.valueOf(strArr[strArr.length - 1]);
+			String keyStr = strArr[0];
+			if (mapCount.get(keyStr) == null) {
+				mapCount.put(keyStr, val);
+			} else {
+				Long temp = mapCount.get(keyStr) + val;
+				mapCount.put(keyStr, temp);
 			}
 		}
-
+		
 		public void cleanup(Context context) throws IOException, InterruptedException {
 
 			for (String key : this.mapCount.keySet()) {
 				word.set(key);
 				logger.info("cleanup my log: " + word);
-				context.write(word, new IntWritable(mapCount.get(key)));
+				context.write(word, new LongWritable(mapCount.get(key)));
 			}
 		}
 	}
 
-	public static class Reduce extends Reducer<Text, IntWritable, Text, IntWritable> {
+	public static class Reduce extends Reducer<Text, LongWritable, Text, LongWritable> {
 
-		public void reduce(Text key, Iterable<IntWritable> values, Context context)
+		public void reduce(Text key, Iterable<LongWritable> values, Context context)
 				throws IOException, InterruptedException {
-			int sum = 0;
-			for (IntWritable val : values) {
+			Long sum = 0L;
+			Long count = 0L;
+			for (LongWritable val : values) {
 				sum += val.get();
+				count++;
 			}
-			context.write(key, new IntWritable(sum));
+			context.write(key, new LongWritable(Long.valueOf(sum/count)));
 		}
 	}
 
@@ -73,13 +72,13 @@ public class InMapperWordCount {
 		Configuration conf = new Configuration();
 
 		@SuppressWarnings("deprecation")
-		Job job = new Job(conf, "InMapperWordCount");
+		Job job = new Job(conf, "AverageComputation");
 
 		// add
 		job.setJarByClass(WordCount.class);
 
 		job.setOutputKeyClass(Text.class);
-		job.setOutputValueClass(IntWritable.class);
+		job.setOutputValueClass(LongWritable.class);
 
 		job.setMapperClass(MyMap.class);
 		job.setReducerClass(Reduce.class);
@@ -92,5 +91,4 @@ public class InMapperWordCount {
 
 		job.waitForCompletion(true);
 	}
-
 }
