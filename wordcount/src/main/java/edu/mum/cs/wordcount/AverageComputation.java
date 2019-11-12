@@ -4,8 +4,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -19,29 +18,32 @@ import org.apache.log4j.Logger;
 public class AverageComputation {
 	private static Logger logger = Logger.getLogger(WordCount.class);
 
-	public static class MyMap extends Mapper<IntWritable, Text, Text, IntWritable> {
+	public static class MyMap extends Mapper<LongWritable, Text, Text, LongWritable> {
 		private Text word = new Text();
 
-		public void map(IntWritable key, Text value, Context context) throws IOException, InterruptedException {
+		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 			String line = value.toString();
 			// get ip and last quantity
 			String[] strArr = line.split(" ");
 			word.set(strArr[0]);
-			context.write(word, new IntWritable(Integer.valueOf(strArr[strArr.length-1])));
+			logger.info("@@@@ " + strArr[0] + " ### " + strArr[strArr.length - 1]);
+			// when the last quantity is - then 0
+			Long val = "-".equals(strArr[strArr.length - 1]) ? 0L : Long.valueOf(strArr[strArr.length - 1]);
+			context.write(word, new LongWritable(val));
 		}
 	}
 
-	public static class Reduce extends Reducer<Text, IntWritable, Text, IntWritable> {
+	public static class Reduce extends Reducer<Text, LongWritable, Text, LongWritable> {
 
-		public void reduce(Text key, Iterable<IntWritable> values, Context context)
+		public void reduce(Text key, Iterable<LongWritable> values, Context context)
 				throws IOException, InterruptedException {
-			Integer sum = 0;
-			Integer count = 0;
-			for (IntWritable val : values) {
+			Long sum = 0L;
+			Long count = 0L;
+			for (LongWritable val : values) {
 				sum += val.get();
 				count++;
 			}
-			context.write(key, new IntWritable(Integer.valueOf(sum/count)));
+			context.write(key, new LongWritable(Long.valueOf(sum/count)));
 		}
 	}
 
@@ -54,7 +56,7 @@ public class AverageComputation {
 		job.setJarByClass(WordCount.class);
 
 		job.setOutputKeyClass(Text.class);
-		job.setOutputValueClass(IntWritable.class);
+		job.setOutputValueClass(LongWritable.class);
 
 		job.setMapperClass(MyMap.class);
 		job.setReducerClass(Reduce.class);
