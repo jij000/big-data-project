@@ -10,15 +10,15 @@ import org.apache.hadoop.io.WritableComparator;
 
 import com.google.common.primitives.Bytes;
 
-public class KeyPair extends BinaryComparable implements WritableComparable<BinaryComparable> {
+public class PredictPair extends BinaryComparable implements WritableComparable<BinaryComparable> {
 	String customerId;
 	String item1;
 	String item2;
 
-	public KeyPair() {
+	public PredictPair() {
 	}
 
-	public KeyPair(String customerId, String x1, String x2) {
+	public PredictPair(String customerId, String x1, String x2) {
 		this.customerId = customerId;
 		this.item1 = x1;
 		this.item2 = x2;
@@ -78,10 +78,10 @@ public class KeyPair extends BinaryComparable implements WritableComparable<Bina
 
 	public static class Comparator extends WritableComparator {
 		public Comparator() {
-			super(KeyPair.class);
+			super(PredictPair.class);
 		}
 
-		public int compare(KeyPair a, KeyPair b) {
+		public int compare(PredictPair a, PredictPair b) {
 			if (a.getCustomerId().compareTo(b.getCustomerId()) == 0) {
 				if (a.getItem1().compareTo(b.getItem1()) == 0) {
 					return a.getItem2().compareTo(b.getItem2());

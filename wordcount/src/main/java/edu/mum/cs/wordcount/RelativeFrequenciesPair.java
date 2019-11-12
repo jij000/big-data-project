@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -17,25 +18,25 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.log4j.Logger;
 
-import edu.mum.cs.wordcount.util.PredictPair;
+import edu.mum.cs.wordcount.util.KeyPair;
 
 
-public class AbsoluteFrequencies {
+public class RelativeFrequenciesPair {
 	private static Logger logger = Logger.getLogger(WordCount.class);
 
-	public static class MyMap extends Mapper<LongWritable, Text, PredictPair, LongWritable> {
+	public static class MyMap extends Mapper<LongWritable, Text, KeyPair, LongWritable> {
 //		private Text word = new Text();
-		private final static LongWritable one = new LongWritable(1L);
+		private final static LongWritable ONE = new LongWritable(1L);
 
-		// get window predictPair list
-		public List<PredictPair> window(String customerId, String line) {
-			List<PredictPair> windowList = new ArrayList<PredictPair>();
+		// get window keyPair list
+		public List<KeyPair> window(String line) {
+			List<KeyPair> windowList = new ArrayList<KeyPair>();
 			String[] strArr = line.split(" ");
 			for (int i = 0; i < strArr.length - 1; i++) {
 				for (int j = i + 1; j < strArr.length; j++) {
 					if (!strArr[i].equals(strArr[j])) {
-						PredictPair key = new PredictPair(customerId, strArr[i], strArr[j]);
-						logger.info("key = " + customerId + " , " + strArr[i] + " , " + strArr[j]);
+						KeyPair key = new KeyPair(strArr[i], strArr[j]);
+						logger.info("key = " + strArr[i] + " , " + strArr[j]);
 						windowList.add(key);
 					} else {
 						break;
@@ -44,26 +45,37 @@ public class AbsoluteFrequencies {
 			}
 			return windowList;
 		}
-		
+
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 			String line = value.toString();
-			// get window predictPair list
-			List<PredictPair> keyList = window(key.toString(), line);
-			for (PredictPair predictPair : keyList) {
-				context.write(predictPair, one);
+			// get window keyPair list
+			List<KeyPair> keyList = window(line);
+			for (KeyPair keyPair : keyList) {
+				context.write(keyPair, ONE);
+				KeyPair keyStar = new KeyPair(keyPair.getItem1(), "*");
+				context.write(keyStar, ONE);
 			}
 		}
 	}
 
-	public static class Reduce extends Reducer<PredictPair, LongWritable, PredictPair, LongWritable> {
+	public static class Reduce extends Reducer<KeyPair, LongWritable, KeyPair, DoubleWritable> {
+		private Double sumAll = 0.0;
+		
+		protected void setup(Context context) throws IOException, InterruptedException {
+			sumAll = 0.0;
+		}
 
-		public void reduce(PredictPair key, Iterable<LongWritable> values, Context context)
+		public void reduce(KeyPair key, Iterable<LongWritable> values, Context context)
 				throws IOException, InterruptedException {
-			Long sum = 0L;
+			Double sum = 0.0;
 			for (LongWritable val : values) {
-				sum += val.get();
+				sum += Double.valueOf(val.get());
 			}
-			context.write(key, new LongWritable(sum));
+			if ("*".equals(key.getItem2())) {
+				sumAll = sum;
+			} else {
+				context.write(key, new DoubleWritable(sum / sumAll));
+			}
 		}
 	}
 
@@ -71,12 +83,12 @@ public class AbsoluteFrequencies {
 		Configuration conf = new Configuration();
 
 		@SuppressWarnings("deprecation")
-		Job job = new Job(conf, "AbsoluteFrequencies");
+		Job job = new Job(conf, "RelativeFrequenciesPair");
 
 		// add
 		job.setJarByClass(WordCount.class);
 
-		job.setOutputKeyClass(PredictPair.class);
+		job.setOutputKeyClass(KeyPair.class);
 		job.setOutputValueClass(LongWritable.class);
 
 		job.setMapperClass(MyMap.class);
