@@ -28,14 +28,14 @@ public class AbsoluteFrequencies {
 		private final static LongWritable one = new LongWritable(1L);
 
 		// get window keyPair list
-		public List<KeyPair> window(String line) {
+		public List<KeyPair> window(String customerId, String line) {
 			List<KeyPair> windowList = new ArrayList<KeyPair>();
 			String[] strArr = line.split(" ");
 			for (int i = 0; i < strArr.length - 1; i++) {
 				for (int j = i + 1; j < strArr.length; j++) {
 					if (!strArr[i].equals(strArr[j])) {
-						KeyPair key = new KeyPair(strArr[i], strArr[j]);
-						logger.info("key = " + strArr[i] + " , " + strArr[j]);
+						KeyPair key = new KeyPair(customerId, strArr[i], strArr[j]);
+						logger.info("key = " + " , " + customerId + strArr[i] + " , " + strArr[j]);
 						windowList.add(key);
 					} else {
 						break;
@@ -48,7 +48,7 @@ public class AbsoluteFrequencies {
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 			String line = value.toString();
 			// get window keyPair list
-			List<KeyPair> keyList = window(line);
+			List<KeyPair> keyList = window(key.toString(), line);
 			for (KeyPair keyPair : keyList) {
 				context.write(keyPair, one);
 			}

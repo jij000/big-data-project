@@ -11,61 +11,69 @@ import org.apache.hadoop.io.WritableComparator;
 import com.google.common.primitives.Bytes;
 
 public class KeyPair extends BinaryComparable implements WritableComparable<BinaryComparable> {
-	String x1;
-	String x2;
+	String customerId;
+	String item1;
+	String item2;
 
 	public KeyPair() {
 	}
 
-	public KeyPair(String x1, String x2) {
-		this.x1 = x1;
-		this.x2 = x2;
+	public KeyPair(String customerId, String x1, String x2) {
+		this.customerId = customerId;
+		this.item1 = x1;
+		this.item2 = x2;
 	}
 
-	public String getX1() {
-		return x1;
+	public String getCustomerId() {
+		return customerId;
 	}
 
-	public void setX1(String x1) {
-		this.x1 = x1;
+	public void setCustomerId(String customerId) {
+		this.customerId = customerId;
 	}
 
-	public String getX2() {
-		return x2;
+	public String getItem1() {
+		return item1;
 	}
 
-	public void setX2(String x2) {
-		this.x2 = x2;
+	public void setItem1(String item1) {
+		this.item1 = item1;
+	}
+
+	public String getItem2() {
+		return item2;
+	}
+
+	public void setItem2(String item2) {
+		this.item2 = item2;
 	}
 
 	public void write(DataOutput out) throws IOException {
-		// TODO Auto-generated method stub
-		out.writeUTF(x1);
-		out.writeUTF(x2);
+		out.writeUTF(this.customerId);
+		out.writeUTF(this.item1);
+		out.writeUTF(this.item2);
 	}
 
 	public void readFields(DataInput in) throws IOException {
-		// TODO Auto-generated method stub
-		this.x1 = in.readUTF();
-		this.x2 = in.readUTF();
+		this.customerId = in.readUTF();
+		this.item1 = in.readUTF();
+		this.item2 = in.readUTF();
 
 	}
 
 	@Override
 	public int getLength() {
-		// TODO Auto-generated method stub
-		return this.x1.length() + this.x2.length();
+		return this.customerId.length() + this.item1.length() + this.item2.length();
 	}
 
 	@Override
 	public String toString() {
-		return "KeyPair [x1=" + x1 + ", x2=" + x2 + "]";
+		return "[customerId=" + customerId + ", item=(" + item1 + ", " + item2 + ")]";
 	}
 
 	@Override
 	public byte[] getBytes() {
-		// TODO Auto-generated method stub
-		return Bytes.concat(this.x1.getBytes(), this.x2.getBytes());
+		return Bytes.concat(this.customerId.getBytes(), this.item1.getBytes(), this.item2.getBytes());
 	}
 
 	public static class Comparator extends WritableComparator {
@@ -74,12 +82,15 @@ public class KeyPair extends BinaryComparable implements WritableComparable<Bina
 		}
 
 		public int compare(KeyPair a, KeyPair b) {
-			if (a.getX1().compareTo(b.getX1()) == 0) {
-				return a.getX2().compareTo(b.getX2());
+			if (a.getCustomerId().compareTo(b.getCustomerId()) == 0) {
+				if (a.getItem1().compareTo(b.getItem1()) == 0) {
+					return a.getItem2().compareTo(b.getItem2());
+				} else {
+					return a.getItem1().compareTo(b.getItem1());
+				}
 			} else {
-				return a.getX1().compareTo(b.getX1());
+				return a.getCustomerId().compareTo(b.getCustomerId());
 			}
 		}
-
 	}
 }
