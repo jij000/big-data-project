@@ -22,7 +22,7 @@ import edu.mum.cs.wordcount.util.KeyPair;
 
 
 public class RelativeFrequenciesPair {
-	private static Logger logger = Logger.getLogger(WordCount.class);
+	private static Logger logger = Logger.getLogger(RelativeFrequenciesPair.class);
 
 	public static class MyMap extends Mapper<LongWritable, Text, KeyPair, LongWritable> {
 //		private Text word = new Text();
