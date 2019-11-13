@@ -1,5 +1,18 @@
 # big-data-project
 
+## The Relationship of Question -> Program
+
+| Question | Program |
+| --------- | ----------- |
+| Part 1 (a)-(c) | WordCount.java |
+| Part 1 (d) | InMapperWordCount.java |
+| Part 1 (e) | AverageComputation.java |
+| Part 1 (f) | InMapperAverageComputation.java |
+| Part 2 | RelativeFrequenciesPair.java |
+| Part 3 | RelativeFrequenciesStripe.java |
+| Part 4 | RelativeFrequenciesMapPairRedueStripe.java |
+| Part 5 | MatrixMultiply.java SparseMatrixMultiply.java |
+
 ## About How to Show input, output and batch file to execute your program at command line in Hadoop
 
 1. please copy the batch folder to vm this path
