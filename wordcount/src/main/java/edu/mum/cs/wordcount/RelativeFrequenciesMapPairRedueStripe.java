@@ -11,9 +11,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -28,10 +26,9 @@ import edu.mum.cs.wordcount.util.KeyPair;
 public class RelativeFrequenciesMapPairRedueStripe {
 	private static Logger logger = Logger.getLogger(RelativeFrequenciesMapPairRedueStripe.class);
 
-	public static class MyMap extends Mapper<LongWritable, Text, Text, MapWritable> {
+	public static class MyMap extends Mapper<LongWritable, Text, KeyPair, LongWritable> {
 //		private Text word = new Text();
-
-		Map<String, Map<String, Long>> emitMap;
+		private final static LongWritable ONE = new LongWritable(1L);
 
 		// get window keyPair list
 		public List<KeyPair> window(String line) {
@@ -51,66 +48,56 @@ public class RelativeFrequenciesMapPairRedueStripe {
 			return windowList;
 		}
 
-		public void setup(Context context) throws IOException, InterruptedException {
-			emitMap = new HashMap<String, Map<String, Long>>();
-		}
-
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 			String line = value.toString();
 			// get window keyPair list
 			List<KeyPair> keyList = window(line);
 			for (KeyPair keyPair : keyList) {
-				if (emitMap.get(keyPair.getItem1()) == null) {
-					Map<String, Long> tempMap = new TreeMap<String, Long>();
-					tempMap.put(keyPair.getItem2(), 1L);
-					emitMap.put(keyPair.getItem1(), tempMap);
-				} else {
-					Map<String, Long> tempMap = emitMap.get(keyPair.getItem1());
-					if (tempMap.get(keyPair.getItem2()) == null) {
-						tempMap.put(keyPair.getItem2(), 1L);
-					} else {
-						tempMap.put(keyPair.getItem2(), tempMap.get(keyPair.getItem2()) + 1L);
-					}
-					emitMap.put(keyPair.getItem1(), tempMap);
-				}
-			}
-		}
-
-		public void cleanup(Context context) throws IOException, InterruptedException {
-			for (String key : emitMap.keySet()) {
-				Map<String, Long> tempMap = emitMap.get(key);
-				// copy MapWritable and emit
-				MapWritable tempMapWritable = new MapWritable();
-				for (String key1 : tempMap.keySet()) {
-					tempMapWritable.put(new Text(key1), new LongWritable(tempMap.get(key1)));
-				}
-				context.write(new Text(key), tempMapWritable);
+				context.write(keyPair, ONE);
 			}
 		}
 	}
 
-	public static class Reduce extends Reducer<Text, MapWritable, KeyPair, DoubleWritable> {
+	public static class Reduce extends Reducer<KeyPair, LongWritable, KeyPair, DoubleWritable> {
 
-		public void reduce(Text key, Iterable<MapWritable> values, Context context)
+		private String uPrev = "";
+		Double sum = 0.0;
+		private Map<String, Long> tempMap;
+
+		public void setup(Context context) throws IOException, InterruptedException {
+			this.uPrev = "";
+			tempMap = new TreeMap<String, Long>();
+		}
+
+		public void reduce(KeyPair key, Iterable<LongWritable> values, Context context)
 				throws IOException, InterruptedException {
-			Map<String, Long> finalMap = new TreeMap<String, Long>();
-			Double sum = 0.0;
-			for (MapWritable val : values) {
-				logger.info("key = " + key + " , " + val.keySet().size());
-				for (Writable tkey : val.keySet()) {
-					if (finalMap.get(tkey.toString()) == null) {
-						finalMap.put(tkey.toString(), Long.valueOf(val.get(tkey).toString()));
-					} else {
-						finalMap.put(tkey.toString(),
-								finalMap.get(tkey.toString()) + Long.valueOf(val.get(tkey).toString()));
-					}
-					sum += Double.valueOf(val.get(tkey).toString());
+			// if key.left change, emit the map
+			if (!uPrev.equals(key.getItem1()) && !"".equals(uPrev)) {
+				for (String key1 : tempMap.keySet()) {
+					context.write(new KeyPair(uPrev, key1), new DoubleWritable(tempMap.get(key1) / sum));
+					logger.info("key = (" + uPrev + ", " + key1 + ")");
+				}
+				tempMap = new HashMap<String, Long>();
+				sum = 0.0;
+			}
+			// make a map to store stripe
+			for (LongWritable val : values) {
+				logger.info("key = " + key);
+				sum += Double.valueOf(val.toString());
+				if (tempMap.get(key.getItem2()) == null) {
+					tempMap.put(key.getItem2(), Long.valueOf(val.toString()));
+				} else {
+					tempMap.put(key.getItem2(), tempMap.get(key.getItem2()) + Long.valueOf(val.toString()));
 				}
 			}
-			for (String key1 : finalMap.keySet()) {
-				context.write(new KeyPair(key.toString(), key1), new DoubleWritable(finalMap.get(key1) / sum));
-			}
+			uPrev = key.getItem1();
+		}
 
+		protected void cleanup(Context context) throws IOException, InterruptedException {
+			// emit the last map
+			for (String key1 : tempMap.keySet()) {
+				context.write(new KeyPair(uPrev, key1), new DoubleWritable(tempMap.get(key1) / sum));
+			}
 		}
 	}
 
@@ -123,8 +110,8 @@ public class RelativeFrequenciesMapPairRedueStripe {
 		// add
 		job.setJarByClass(RelativeFrequenciesMapPairRedueStripe.class);
 
-		job.setOutputKeyClass(Text.class);
-		job.setOutputValueClass(MapWritable.class);
+		job.setOutputKeyClass(KeyPair.class);
+		job.setOutputValueClass(LongWritable.class);
 
 		job.setMapperClass(MyMap.class);
 		job.setReducerClass(Reduce.class);
