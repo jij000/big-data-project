@@ -1,6 +1,7 @@
 #run RelativeFrequenciesMapPairRedueStripe
 cd /home/cloudera/workspace/batch/
-#delete output to run again
+#delete input and output to run again
+hadoop fs -rm -r /user/cloudera/wordcount/RelativeFrequenciesMapPairRedueStripe_input
 hadoop fs -rm -r /user/cloudera/wordcount/RelativeFrequenciesMapPairRedueStripe_output
 hadoop fs -mkdir /user/cloudera /user/cloudera/wordcount /user/cloudera/wordcount/RelativeFrequenciesMapPairRedueStripe_input
 hadoop fs -put input/file* /user/cloudera/wordcount/RelativeFrequenciesMapPairRedueStripe_input
