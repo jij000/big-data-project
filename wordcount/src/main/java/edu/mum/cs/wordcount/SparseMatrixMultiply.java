@@ -23,8 +23,6 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-import edu.mum.cs.wordcount.MatrixMultiply.MatrixMapper;
-import edu.mum.cs.wordcount.MatrixMultiply.MatrixReducer;
 
 public class SparseMatrixMultiply extends Configured implements Tool {
 	public static class SMMapper extends Mapper<LongWritable, Text, Text, Text> {
@@ -95,10 +93,10 @@ public class SparseMatrixMultiply extends Configured implements Tool {
 	public int run(String[] args) throws Exception {
 		Job job = new Job(getConf(), "WordCount");
 
-		job.setJarByClass(MatrixMultiply.class);
+		job.setJarByClass(SparseMatrixMultiply.class);
 
-		job.setMapperClass(MatrixMapper.class);
-		job.setReducerClass(MatrixReducer.class);
+		job.setMapperClass(SMMapper.class);
+		job.setReducerClass(SMReducer.class);
 
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
