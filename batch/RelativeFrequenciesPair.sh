@@ -1,19 +1,3 @@
-# big-data-project
-
-## About How to Show input, output and batch file to execute your program at command line in Hadoop
-
-1. please copy the batch folder to vm this path
-    /home/cloudera/workspace/batch/
-2. open terminal and change the current path
-```sh
-cd /home/cloudera/workspace/batch/
-``` 
-3. run the command in cloudera vm, and it will copy output file to local output folder
-```sh
-sh RelativeFrequenciesPair.sh
-```
-4. a sample of batch file
-``` sh
 #run RelativeFrequenciesPair
 cd /home/cloudera/workspace/batch/
 #delete output to run again
@@ -27,5 +11,3 @@ hadoop fs -cat /user/cloudera/wordcount/RelativeFrequenciesPair_output/*
 #download
 hadoop fs -get /user/cloudera/wordcount/RelativeFrequenciesPair_output/* RelativeFrequenciesPair_output
 read -n1 -r -p "Press any key to continue..." key
-```
-
