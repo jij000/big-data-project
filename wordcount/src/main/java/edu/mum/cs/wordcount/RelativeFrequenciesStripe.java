@@ -39,7 +39,7 @@ public class RelativeFrequenciesStripe {
 						if (tempMap.get(strArr[j]) == null) {
 							tempMap.put(strArr[j], 1L);
 						} else {
-							tempMap.put(strArr[j], tempMap.get(strArr[j]) +  1L);
+							tempMap.put(strArr[j], tempMap.get(strArr[j]) + 1L);
 						}
 						logger.info("key = " + strArr[i] + " , " + tempMap.get(strArr[i]));
 					} else {
@@ -48,7 +48,7 @@ public class RelativeFrequenciesStripe {
 				}
 				// copy MapWritable and emit
 				MapWritable tempMapWritable = new MapWritable();
-				for (String key1:tempMap.keySet()) {
+				for (String key1 : tempMap.keySet()) {
 					tempMapWritable.put(new Text(key1), new LongWritable(tempMap.get(key1)));
 				}
 				context.write(new Text(strArr[i]), tempMapWritable);
@@ -57,7 +57,7 @@ public class RelativeFrequenciesStripe {
 	}
 
 	public static class Reduce extends Reducer<Text, MapWritable, KeyPair, DoubleWritable> {
-	
+
 		public void reduce(Text key, Iterable<MapWritable> values, Context context)
 				throws IOException, InterruptedException {
 			Map<String, Long> finalMap = new TreeMap<String, Long>();
@@ -65,16 +65,17 @@ public class RelativeFrequenciesStripe {
 			for (MapWritable val : values) {
 				logger.info("key = " + key + " , " + val.keySet().size());
 				for (Writable tkey : val.keySet()) {
-					if (finalMap.get(tkey.toString())==null) {
+					if (finalMap.get(tkey.toString()) == null) {
 						finalMap.put(tkey.toString(), Long.valueOf(val.get(tkey).toString()));
 					} else {
-						finalMap.put(tkey.toString(), finalMap.get(tkey.toString()) + Long.valueOf(val.get(tkey).toString()));
+						finalMap.put(tkey.toString(),
+								finalMap.get(tkey.toString()) + Long.valueOf(val.get(tkey).toString()));
 					}
 					sum += Double.valueOf(val.get(tkey).toString());
 				}
 			}
 			for (String key1 : finalMap.keySet()) {
-				context.write(new KeyPair(key.toString(), key1), new DoubleWritable( finalMap.get(key1)/ sum));
+				context.write(new KeyPair(key.toString(), key1), new DoubleWritable(finalMap.get(key1) / sum));
 			}
 
 		}
