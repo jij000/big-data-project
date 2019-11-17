@@ -39,7 +39,8 @@ object BootstrappingEarthquakesFiji extends App {
       .toDF
     // Run SQL queries from the Spark DataFrame
     mtQuakes.registerTempTable("quakes")
-    val stationQuakes = sqlContext.sql("SELECT station, sum(mag) / count(mag), IF(stddev(mag)='NaN', 0, stddev(mag)) FROM quakes WHERE 1=1 group by station order by station ")
+    val stationQuakes = sqlContext.sql("SELECT station, sum(mag) / count(mag), IF(stddev(mag)='NaN', 0, stddev(mag)) " +
+      "FROM quakes WHERE 1=1 group by station order by station ")
     // Step 3. Compute the mean mpg and variance for each category and display
     println("origin data:---------------------")
     stationQuakes.show()
@@ -47,25 +48,26 @@ object BootstrappingEarthquakesFiji extends App {
     val sample = mtQuakes.sample(false, 0.25).map(p => Quakes(p(0).toString, p(1).toString)).toDF
     sample.cache()
     sample.registerTempTable("sample")
-    val sampleOut = sqlContext.sql("SELECT station, sum(mag) / count(mag), IF(stddev(mag)='NaN', 0, stddev(mag)) FROM sample WHERE 1=1 group by station order by station ")
+    val sampleOut = sqlContext.sql("SELECT station, sum(mag) / count(mag), IF(stddev(mag)='NaN', 0, stddev(mag)) " +
+      "FROM sample WHERE 1=1 group by station order by station ")
     println("sample take 25% of the population without replacement:---------------------")
     sampleOut.show()
     // Step 5. Do 1000 times
     var a = 0
-    val resampleTimes = 1
+    val resampleTimes = 10
     import scala.collection.mutable.HashMap
     val reAvg = new HashMap[String, Double].withDefault(k => 0)
     val reStddev = new HashMap[String, Double].withDefault(k => 0)
     while (a < resampleTimes) {
       //5a. Create a “resampledData”. All you need to do is take 100% of the sample with replacement.
-      val resampledData = sample.sample(true, 1.00).map(p => Quakes(p(0).toString, p(1).toString)).toDF
-      //      resampledData.printSchema
+      val resampledData = sample.sample(true, 1.00)
+        .map(p => Quakes(p(0).toString, p(1).toString)).toDF
       //5b. Compute the mean mpg and variance for each c
       resampledData.registerTempTable("resampledData")
-      val resampledDataOut = sqlContext.sql("SELECT station, sum(mag) / count(mag), IF(stddev(mag)='NaN', 0, stddev(mag)) FROM resampledData WHERE 1=1 group by station order by station ")
-      println("resampled Data take 100% of the sample with replacement:---------------------")
-      resampledDataOut.show()
-
+      val resampledDataOut = sqlContext.sql("SELECT station, sum(mag) / count(mag), IF(stddev(mag)='NaN', 0, stddev(mag)) " +
+        "FROM resampledData WHERE 1=1 group by station order by station ")
+//      println("resampled Data take 100% of the sample with replacement:---------------------")
+//      resampledDataOut.show()
       //5c. Keep adding the values in some running sum
       resampledDataOut.collect().foreach(line => {
         val station = line.getAs[String]("station")
@@ -85,6 +87,7 @@ object BootstrappingEarthquakesFiji extends App {
     val out = sc.parallelize(outList)
     out.map(p => p).toDF.registerTempTable("output")
     val output = sqlContext.sql("SELECT * FROM output WHERE station <> '' order by station ")
+    println("Divide each quantity by " + resampleTimes + " to get the average:---------------------")
     output.show()
   }
 }
