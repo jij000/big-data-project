@@ -11,6 +11,7 @@ import org.uncommons.maths.statistics.DataSet
 import scala.collection.mutable
 
 case class Quakes(station: String, mag: String)
+case class Result(station: String, avg: Double, stddev: Double)
 
 object BootstrappingEarthquakesFiji extends App {
   override def main(args: Array[String]) {
@@ -27,22 +28,15 @@ object BootstrappingEarthquakesFiji extends App {
 
     // Load a cvs file
     val csv = sc.textFile("quakes.csv")
-    //    csv.foreach(println)
+    // csv.foreach(println)
     val headerAndRows = csv.map(line => line.split(",").map(_.trim))
-    //    println("headerAndRows=" + headerAndRows)
-    //    headerAndRows.foreach(println)
     val header = headerAndRows.first
-    //    println("header=" + header)
-    //    header.foreach(println)
     val mtcdata = headerAndRows.filter(_ (0) != header(0))
-    //    println("mtcdata=" + mtcdata)
-    //    mtcdata.foreach(println)
     //Step 2. Select a categorical variable and a numeric variable and form the key-value pair and
     //create a pairRDD called “population”.
     val mtQuakes = mtcdata
       .map(p => Quakes(p(5), p(4)))
       .toDF
-    //    mtQuakes.printSchema
     // Run SQL queries from the Spark DataFrame
     mtQuakes.registerTempTable("quakes")
     val stationQuakes = sqlContext.sql("SELECT station, sum(mag) / count(mag), IF(stddev(mag)='NaN', 0, stddev(mag)) FROM quakes WHERE 1=1 group by station order by station ")
@@ -58,7 +52,7 @@ object BootstrappingEarthquakesFiji extends App {
     sampleOut.show()
     // Step 5. Do 1000 times
     var a = 0
-    val resampleTimes = 10
+    val resampleTimes = 1
     import scala.collection.mutable.HashMap
     val reAvg = new HashMap[String, Double].withDefault(k => 0)
     val reStddev = new HashMap[String, Double].withDefault(k => 0)
@@ -84,19 +78,13 @@ object BootstrappingEarthquakesFiji extends App {
       a = a + 1
     }
     // Step 6. Divide each quantity by 1000 to get the average and display the result
-    println("|Station\t|avg\t\t|stddev|")
-    println("+--------------+------------------+-------------------+")
+    var outList = Array(Result("", 0.0, 0.0))
     reAvg.keys.foreach { i =>
-      println("", i, "\t\t", reAvg(i) / resampleTimes, "\t\t", reStddev(i) / resampleTimes)
+      outList = Result(i,reAvg(i) / resampleTimes,reStddev(i) / resampleTimes) +: outList
     }
-    //    reAvg.keys.foreach { i =>
-    //      print("Rank = " + i)
-    //      println(" Mean Value = " + (reAvg(i) / resampleTimes))
-    //    }
-    //    println("----------------------------------------")
-    //    reStddev.keys.foreach { i =>
-    //      print("Key = " + i)
-    //      println(" Variance Value = " + (reStddev(i) / resampleTimes))
-    //    }
+    val out = sc.parallelize(outList)
+    out.map(p => p).toDF.registerTempTable("output")
+    val output = sqlContext.sql("SELECT * FROM output WHERE station <> '' order by station ")
+    output.show()
   }
 }
