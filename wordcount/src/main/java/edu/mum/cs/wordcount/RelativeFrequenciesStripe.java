@@ -82,6 +82,8 @@ public class RelativeFrequenciesStripe {
 	}
 
 	public static void main(String[] args) throws Exception {
+		long startTime=System.currentTimeMillis(); 
+		
 		Configuration conf = new Configuration();
 
 		@SuppressWarnings("deprecation")
@@ -103,5 +105,8 @@ public class RelativeFrequenciesStripe {
 		FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
 		job.waitForCompletion(true);
+
+		long endTime=System.currentTimeMillis();
+		logger.info("Time used:" +(endTime-startTime)+"ms");
 	}
 }
